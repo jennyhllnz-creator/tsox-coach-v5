@@ -1,0 +1,824 @@
+# tsox-coach-v5
+ACSM 智能教練 App
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>T-SOX 教練 — FITT-VP Final (Modified)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#f3f6f5; --card:#ffffff; --primary:#2e7d32; --accent:#ff6f00; --muted:#616161;
+  --nav-h:84px; --font-size:18px;
+  --added-bg:#c8e6c9; --added-text:#2e7d32;
+  --print-primary:#1b5e20; --print-accent:#ff8a65;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:#222;-webkit-font-smoothing:antialiased}
+.header{background:linear-gradient(135deg,var(--primary),#1b5e20);color:white;padding:18px;border-radius:0 0 22px 22px;box-shadow:0 6px 20px rgba(27,94,32,0.25);position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between}
+.header .title{font-weight:800;font-size:1.25rem}
+.container{padding:16px;max-width:1100px;margin:0 auto;padding-bottom:140px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+.label{font-weight:800;color:var(--muted);margin-bottom:8px;font-size:1.03rem}
+.result{background:#f5fff6;border-radius:12px;padding:12px;border:1px solid #dff0e6;font-size:var(--font-size);line-height:1.5}
+.small{font-size:0.95rem;color:var(--muted)}
+.row{display:flex;gap:12px;align-items:center}
+.controls{display:flex;gap:8px;margin-top:8px}
+.button{padding:10px 14px;border-radius:12px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95rem;cursor:pointer}
+.button.secondary{background:#455a64}
+.button.ghost{background:#fff;color:var(--muted);border:1px solid #eee}
+.calendar-wrap{display:flex;gap:12px;flex-wrap:wrap}
+.cal-panel{flex:1;min-width:320px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.cal-cell{background:#fff;border-radius:10px;padding:10px;min-height:80px;border:1px solid #eee;position:relative;font-size:0.95rem}
+.cal-cell .dateNum{font-weight:700;margin-bottom:8px}
+.cal-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:none}
+.cal-cell.has .cal-dot{display:block}
+.badge{display:inline-block;padding:6px 10px;border-radius:10px;background:var(--primary);color:white;font-weight:800}
+.hint{position:fixed;bottom:calc(var(--nav-h) + 6px);left:12px;right:12px;text-align:center;background:white;padding:10px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);font-weight:700;z-index:50}
+.console{position:fixed;left:12px;right:12px;bottom:160px;background:rgba(0,0,0,0.85);color:#00ffb2;padding:10px;border-radius:8px;font-family:monospace;font-size:0.92rem;max-height:140px;overflow:auto;z-index:40}
+.fab-bar{position:fixed;bottom:12px;left:12px;right:12px;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:10px;z-index:60}
+.fab{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#43a047,var(--primary));border:4px solid white;color:white;font-size:30px;box-shadow:0 12px 30px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.fab.listening{background:var(--accent)}
+.nav-card{flex:1;background:#fff;border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:space-around;gap:8px;box-shadow:0 8px 20px rgba(0,0,0,0.06)}
+.nav-btn{display:flex;flex-direction:column;align-items:center;color:#9e9e9e;font-weight:700;padding:6px 8px;border-radius:8px;cursor:pointer}
+.nav-btn.active{color:var(--primary);background:rgba(46,125,50,0.06)}
+.equip-info{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:white;padding:18px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.25);z-index:120;max-width:92%;display:none}
+.equip-info h3{margin:0 0 8px 0}
+.recommend-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.reco-card{background:#fff;border-radius:10px;padding:10px;border:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+.reco-left{max-width:68%}
+.reco-meta{font-size:0.95rem;color:var(--muted)}
+.chart-card{height:320px}
+.toast{position:fixed;right:16px;bottom:110px;background:#323232;color:white;padding:10px 14px;border-radius:8px;z-index:200;opacity:0;transform:translateY(8px);transition:all .28s}
+.toast.show{opacity:1;transform:translateY(0)}
+.added-btn{background:var(--added-bg);color:var(--added-text);border:1px solid #a5d6a7}
+.tab-page{display:none}
+.tab-page.active{display:block}
+.lang-row{display:flex;gap:8px;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid #eee;background:white;cursor:pointer}
+.lang-btn.active{background:#efebe9}
+.add-all{margin-top:10px}
+@media(max-width:760px){ .container{padding:12px} .cal-panel{min-width:100%} .cal-cell{min-height:74px} .console{display:none} .equip-info{width:92%} }
+@media print {
+  body{background:#fff}
+  .fab-bar, .hint, .toast, .console, .nav-card { display:none !important; }
+}
+</style>
+</head>
+<body>
+  <header class="header">
+    <div class="title">T-SOX 環狀運動系統 — 智能教練</div>
+    <div class="small" id="bmi">BMI: --</div>
+  </header>
+
+  <main class="container">
+    <!-- SURVEY PAGE -->
+    <section id="page-survey" class="tab-page active">
+      <section class="card">
+        <div class="label">問診進度</div>
+        <div id="progress" class="large-text">尚未開始</div>
+        <div class="small" style="margin-top:8px">語音狀態：<span id="voiceState">待啟動</span></div>
+      </section>
+
+      <section class="card">
+        <div class="label">問診摘要（即時）</div>
+        <pre id="answersView" class="result">尚無問診資料</pre>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button id="btnClear" class="button ghost">清除問診資料</button>
+          <div style="margin-left:auto" class="lang-row">
+            <div class="small">語言：</div>
+            <button id="micZhBtn" class="lang-btn active">華語</button>
+            <!-- 台語按鈕已移除（依使用者指示） -->
+          </div>
+        </div>
+      </section>
+
+      <section id="prescriptionCard" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="label">教練處方（分項建議）</div>
+            <div id="rxSummary" class="big"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="badge" id="rxBadge">建議</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <button id="addAllBtn" class="button add-all">一鍵加入全部到今日行事曆</button>
+          <button id="exportAllBtn" class="button ghost" style="margin-left:8px">匯出全部處方 PDF</button>
+        </div>
+
+        <div id="rxPlan" style="margin-top:12px;font-size:1.02rem"></div>
+
+        <div style="margin-top:10px">
+          <div class="label">分項建議（每項可單獨加入行事曆）</div>
+          <div id="recommendList" class="recommend-list"></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- CALENDAR PAGE -->
+    <section id="page-calendar" class="tab-page">
+      <section class="card">
+        <div class="label">行事曆（月檢視）</div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="prevMonth" class="button ghost">◀</button>
+            <div id="calHeader" class="day-title large-text">--</div>
+            <button id="nextMonth" class="button ghost">▶</button>
+          </div>
+          <div style="margin-left:auto" class="small">點選日期查看當日記錄（包含 METs & 卡路里）</div>
+        </div>
+        <div class="calendar-wrap">
+          <div class="cal-panel card" style="padding:10px">
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+          <div class="side-panel card">
+            <div class="label">當日記錄</div>
+            <div id="dayEvents" class="small">請點選日期</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- MET PAGE -->
+    <section id="page-met" class="tab-page">
+      <section class="card">
+        <div class="label">每週 MET-min 趨勢（詳細）</div>
+        <div class="card chart-card">
+          <canvas id="weekChart" style="width:100%;height:100%"></canvas>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="hint" class="hint">按一下麥克風（一次）取得權限並開始問診；麥克風會在所有問題問完後自動關閉。</div>
+
+  <div id="console" class="console">[系統] 準備中…</div>
+
+  <div id="toast" class="toast">已加入行事曆</div>
+
+  <div class="fab-bar">
+    <div class="nav-card">
+      <div class="nav-btn active" id="tabSurveyBtn"><div style="font-size:20px">🩺</div><div style="font-size:12px">問診</div></div>
+      <div class="nav-btn" id="tabCalendarBtn"><div style="font-size:20px">📅</div><div style="font-size:12px">行事曆</div></div>
+      <div class="nav-btn" id="tabMetBtn"><div style="font-size:20px">📈</div><div style="font-size:12px">MET 趨勢</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button id="micBtn" class="fab">🎤</button>
+    </div>
+  </div>
+
+  <!-- equipment info modal -->
+  <div id="equipInfo" class="equip-info">
+    <h3 id="equipTitle">器材說明</h3>
+    <div id="equipText">內容</div>
+    <div style="margin-top:12px;text-align:right"><button id="closeEquip" class="button ghost">關閉</button></div>
+  </div>
+<script>
+/* ================= Final 全域狀態與問診題庫 ================= */
+const steps = [
+  {key:'gender', prompt:'請問您的性別，請說「男」或「女」。', type:'select', map:{'男':'male','女':'female'}},
+  {key:'age', prompt:'請問您的年齡幾歲？', type:'number'},
+  {key:'height', prompt:'請問您的身高多少公分？', type:'number'},
+  {key:'weight', prompt:'請問您的體重多少公斤？', type:'number'},
+  {key:'goal', prompt:'請問您的主要運動目標為何？請說「減重」、「心肺」、「肌力」或「健康維持」。', type:'select', map:{'減重':'weight','心肺':'cardio','肌力':'strength','健康':'maintain'}},
+  {key:'current_days', prompt:'目前每週您大約運動幾天？請說數字。', type:'number'},
+  {key:'future_days', prompt:'未來您希望每週安排幾天運動？請說數字。', type:'number'},
+  {key:'experience', prompt:'您的運動經驗為何？請說「無經驗」、「初學」、「有經驗」或「競技」。', type:'text'},
+  {key:'chronic', prompt:'是否被醫師診斷有慢性病？請說「有」或「沒有」。', type:'select', map:{'有':'yes','沒有':'no','無':'no'}},
+  {key:'chronic_type', prompt:'若有，請說明是哪一種慢性病，例如「心血管」、「高血壓」、「糖尿病」、「腎臟」等。', type:'text'},
+  {key:'asthma', prompt:'是否有氣喘或呼吸相關問題？請說「有」或「沒有」。', type:'select', map:{'有':'yes','沒有':'no'}},
+  {key:'knee', prompt:'膝蓋是否會疼痛？請說「膝蓋痛」或「沒有」。', type:'select', map:{'膝蓋痛':'yes','痛':'yes','有痛':'yes','沒有':'no','沒痛':'no'}},
+  {key:'goal_weeks', prompt:'您的目標希望在幾週內達成？請說數字，例如十二。', type:'number'}
+];
+
+let currentIndex = 0;
+let answers = {};
+let recognition = null;
+let isListening = false;
+let autoRecording = false;
+let suppressRecognition = false;
+let waitingForTTS = false;
+const currentLang = 'cmn-Hant-TW'; // 固定為華語
+const synth = window.speechSynthesis;
+
+/* DOM refs */
+const consoleEl = document.getElementById('console');
+const micBtn = document.getElementById('micBtn');
+const hintEl = document.getElementById('hint');
+const answersView = document.getElementById('answersView');
+const progressEl = document.getElementById('progress');
+const voiceState = document.getElementById('voiceState');
+const prescriptionCard = document.getElementById('prescriptionCard');
+const rxSummary = document.getElementById('rxSummary');
+const rxPlan = document.getElementById('rxPlan');
+const recommendList = document.getElementById('recommendList');
+const calGrid = document.getElementById('calGrid');
+const calHeader = document.getElementById('calHeader');
+const dayEvents = document.getElementById('dayEvents');
+const prevMonth = document.getElementById('prevMonth');
+const nextMonth = document.getElementById('nextMonth');
+const tabSurveyBtn = document.getElementById('tabSurveyBtn');
+const tabCalendarBtn = document.getElementById('tabCalendarBtn');
+const tabMetBtn = document.getElementById('tabMetBtn');
+const pageSurvey = document.getElementById('page-survey');
+const pageCalendar = document.getElementById('page-calendar');
+const pageMet = document.getElementById('page-met');
+const toastEl = document.getElementById('toast');
+const equipInfo = document.getElementById('equipInfo');
+const equipTitle = document.getElementById('equipTitle');
+const equipText = document.getElementById('equipText');
+const closeEquip = document.getElementById('closeEquip');
+const addAllBtn = document.getElementById('addAllBtn');
+const exportAllBtn = document.getElementById('exportAllBtn');
+const weekCtx = document.getElementById('weekChart').getContext('2d');
+let weekChart = null;
+let viewDate = new Date();
+
+/* ---------- helpers ---------- */
+function log(msg, err=false){ const t=new Date().toLocaleTimeString(); consoleEl.innerText = `[${t}] ${msg}\n` + consoleEl.innerText; }
+function updateProgress(){ progressEl.innerText = `第 ${Math.min(currentIndex+1, steps.length)} 題 / ${steps.length} 題`; }
+function prettyAnswers(){
+  let s = '';
+  s += `👤 性別：${answers.gender==='male'?'男性':answers.gender==='female'?'女性':'未填'}\n`;
+  if(answers.age) s += `🎂 年齡：${answers.age} 歲\n`;
+  if(answers.height) s += `📏 身高：${answers.height} 公分\n`;
+  if(answers.weight) s += `⚖ 體重：${answers.weight} 公斤\n`;
+  if(answers.goal) s += `🎯 運動目標：${answers.goal}\n`;
+  if(answers.current_days) s += `📅 目前每週運動：${answers.current_days} 天\n`;
+  if(answers.future_days) s += `📅 希望每週安排：${answers.future_days} 天\n`;
+  if(answers.experience) s += `🏋️ 經驗：${answers.experience}\n`;
+  s += `💊 慢性病：${answers.chronic==='yes'?'有':'沒有'}\n`;
+  if(answers.chronic==='yes' && answers.chronic_type) s += `　　類型：${answers.chronic_type}\n`;
+  s += `🌬 氣喘：${answers.asthma==='yes'?'有':'沒有'}\n`;
+  s += `🦵 膝蓋疼痛：${answers.knee==='yes'?'有':'沒有'}\n`;
+  if(answers.goal_weeks) s += `⏳ 目標期程：${answers.goal_weeks} 週\n`;
+  answersView.innerText = s || '尚無問診資料';
+  if(answers.height && answers.weight){
+    const h = Number(answers.height); const w = Number(answers.weight);
+    if(h && w) document.getElementById('bmi').innerText = 'BMI: ' + (w/((h/100)**2)).toFixed(1);
+  }
+}
+
+/* ---------- recognition init ---------- */
+function initRecognition(lang){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('瀏覽器不支援 Web Speech API，請使用 Chrome 並於 HTTPS 或 localhost 執行'); log('不支援 SpeechRecognition', true); return false; }
+  try{
+    recognition = new SR();
+    recognition.lang = lang || currentLang;
+    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.onstart = ()=>{ isListening = true; micBtn.classList.add('listening'); voiceState.innerText='錄音中'; log('錄音啟動'); };
+    recognition.onresult = (e)=>{
+      if(suppressRecognition) { log('suppressRecognition - 忽略此結果'); return; }
+      const last = e.results[e.results.length-1];
+      const text = last[0].transcript.trim();
+      log('辨識到語音: ' + text);
+      processAnswer(text);
+    };
+    recognition.onerror = (ev)=>{ log('辨識錯誤: ' + ev.error, true); };
+    recognition.onend = ()=>{
+      isListening = false; micBtn.classList.remove('listening'); log('recognition.onend');
+      if(autoRecording && currentIndex < steps.length && !waitingForTTS){
+        setTimeout(()=>{ try{ recognition.start(); } catch(e){ log('restart fail: ' + (e.message||e), true); } }, 300);
+      } else {
+        voiceState.innerText = '等待中';
+      }
+    };
+    return true;
+  } catch(e){
+    log('initRecognition 例外: ' + e.message, true);
+    return false;
+  }
+}
+
+/* ---------- TTS ---------- */
+function speak(text, onend){
+  waitingForTTS = true;
+  suppressRecognition = true;
+  const u = new SpeechSynthesisUtterance(text);
+  const voices = speechSynthesis.getVoices();
+  let chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh-tw')) || voices[0];
+  if(chosen) u.voice = chosen;
+  u.lang = chosen?.lang || 'zh-TW';
+  u.rate = 0.98;
+  u.pitch = 1.0;
+  u.onend = ()=>{
+    waitingForTTS = false;
+    suppressRecognition = false;
+    log('TTS 結束: ' + text);
+    if(typeof onend === 'function') onend();
+  };
+  synth.cancel(); synth.speak(u);
+}
+
+/* ---------- parsing helpers ---------- */
+function parseChineseNumber(text){
+  const m = text.match(/\d+/); if(m) return Number(m[0]);
+  const map = {'零':0,'一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'百':100};
+  let val=0,t=0,found=false;
+  for(const ch of text){ if(map[ch]!==undefined){ found=true; if(map[ch]===10||map[ch]===100){ if(t===0) t=1; val += t * map[ch]; t=0;} else { t = t*10 + map[ch]; } } }
+  val += t; return found ? val : null;
+}
+function normalize(t){ return t.replace(/\s+/g,'').replace(/[，。,.、]/g,'').toLowerCase(); }
+
+/* ---------- processAnswer (continuous) ---------- */
+const AGREE_WORDS = ["好","可以","ok","okay","行","沒問題","可以喔","好喔","好啦","對","是","嗯","恩","嗯哼"];
+const NEGATE_WORDS = ["沒","沒有","不","不要","不行","無"];
+
+function processAnswer(recText){
+  if(currentIndex >= steps.length) return;
+  const step = steps[currentIndex];
+  let val = null;
+  const raw = recText.trim();
+  const c = normalize(raw);
+
+  // quick agree/negation handling
+  const containsAgree = AGREE_WORDS.some(w => c.includes(w));
+  const containsNeg = NEGATE_WORDS.some(w => c.includes(w));
+
+  if(step.type === 'select' && step.map){
+    if(step.map && (Object.values(step.map).includes('yes') || Object.values(step.map).includes('no'))){
+      if(containsAgree && !containsNeg) val = 'yes';
+      else if(containsNeg && !containsAgree) val = 'no';
+    }
+  }
+
+  if(val === null){
+    if(step.type==='number'){ val = parseChineseNumber(c); }
+    else if(step.type==='select' && step.map){
+      for(const k in step.map){
+        if(c.includes(k)) { val = step.map[k]; break; }
+      }
+      if(val===null){
+        if(c.includes('有')) val='yes';
+        if(c.includes('沒有')||c.includes('無')) val='no';
+        if(c.includes('減重')) val='weight';
+        if(c.includes('心肺')) val='cardio';
+        if(c.includes('肌力')) val='strength';
+        if(c.includes('維持')) val='maintain';
+      }
+    } else { val = raw; }
+    if(val===null && step.type==='number'){
+      const num = parseFloat(raw);
+      if(!isNaN(num)) val = num;
+    }
+  }
+
+  if(val===null){
+    log('無法解析答案，請再說一次');
+    speak('抱歉，沒聽清楚，請再說一次。');
+    return;
+  }
+
+  answers[step.key] = val;
+  prettyAnswers();
+
+  if(step.key === 'chronic' && val === 'no'){
+    delete answers['chronic_type'];
+    currentIndex++; // skip chronic_type
+  }
+
+  currentIndex++;
+  updateProgress();
+
+  if(currentIndex < steps.length){
+    const nextQ = steps[currentIndex].prompt;
+    log('下一題：' + nextQ);
+    speak('好的，再請您回答：' + nextQ);
+  } else {
+    log('問診完成，生成處方...');
+    try{ recognition && recognition.stop(); } catch(e){}
+    autoRecording = false;
+    consoleEl.style.display = 'none';
+    hintEl.style.display = 'none';
+    voiceState.innerText = '已結束';
+    speak('問診完成，教練正在為您生成建議。');
+    setTimeout(()=> generatePrescription(), 700);
+  }
+}
+
+/* ---------- equipment info content ---------- */
+const equipInfos = {
+  '跑步機': { title:'跑步機 - 注意事項', text:'抬頭、核心穩定、步幅適中。若膝蓋痛或心血管疾病須保守；熱身 8-10 分鐘，坡度/速度逐步增加。' },
+  '橢圓機': { title:'橢圓機 - 注意事項', text:'低衝擊、節奏穩定，適合膝蓋不適者；保持踏板平順。' },
+  '划船機': { title:'划船機 - 注意事項', text:'動作順序：腿→軀幹→手。核心收緊，避免用肩膀拉。腰痛者降低阻力。' },
+  '立式腳踏車': { title:'立式腳踏車 - 注意事項', text:'適合間歇訓練，座椅調整正確，避免膝蓋內扣；注意踏頻。' },
+  '臥式腳踏車': { title:'臥式腳踏車 - 注意事項', text:'非常低衝擊，適合復健與初學者，座椅與靠背要支撐腰部。' }
+};
+function showEquipInfoByName(name){
+  const info = equipInfos[name] || {title:name, text:'無額外資訊'};
+  equipTitle.innerText = info.title;
+  equipText.innerText = info.text;
+  equipInfo.style.display = 'block';
+}
+closeEquip.addEventListener('click', ()=> equipInfo.style.display = 'none');
+
+/* ---------- prescription generation & display ---------- */
+function generatePrescription(){
+  const h = Number(answers.height) || null;
+  const w = Number(answers.weight) || 70;
+  const currDays = Number(answers.current_days) || 0;
+  const futureDays = Number(answers.future_days) || currDays;
+  const exp = (answers.experience||'').toString().toLowerCase();
+  const chronic = answers.chronic==='yes';
+  const chronic_type = (answers.chronic_type||'').toString().toLowerCase();
+  const knee = answers.knee==='yes';
+  const asthma = answers.asthma==='yes';
+  const goal = answers.goal || '維持';
+  const weeks = Number(answers.goal_weeks) || 12;
+
+  let allowed = ['跑步機','橢圓機','划船機','立式腳踏車','臥式腳踏車'];
+  if(knee) allowed = allowed.filter(x=> x!=='跑步機' && x!=='立式腳踏車');
+  if(chronic){
+    if(chronic_type.includes('心')||chronic_type.includes('高血壓')||chronic_type.includes('心血管')){
+      allowed = allowed.filter(x=> x!=='跑步機');
+    }
+  }
+  if(asthma) allowed = allowed.filter(x=> x!=='跑步機');
+  if(allowed.length===0) allowed=['臥式腳踏車','橢圓機'];
+
+  let intensity='中等強度', rpe='RPE 4-6', totalTime=30;
+  if(exp.includes('無') || currDays<=1){ intensity='中低強度'; rpe='RPE 3-5'; totalTime=25; }
+  else if(exp.includes('初') || currDays===2 || currDays===3){ intensity='中等強度'; rpe='RPE 4-6'; totalTime=30; }
+  else if(exp.includes('有') || currDays>=4){ intensity='中高強度'; rpe='RPE 5-7'; totalTime=35; }
+  else if(exp.includes('競') || currDays>=5){ intensity='高強度'; rpe='RPE 6-8'; totalTime=40; }
+  if(chronic || asthma){ totalTime = Math.max(20, Math.round(totalTime*0.8)); rpe='RPE 3-5（保守）'; intensity='低到中等（保守）'; }
+
+  const picks = allowed.slice(0, Math.min(4, allowed.length));
+  const per = Math.max(8, Math.round(totalTime / picks.length));
+  function estimateMets(label){
+    if(label.includes('低')) return 4.0;
+    if(label.includes('中低')) return 4.5;
+    if(label.includes('中高')) return 7.0;
+    if(label.includes('中等')) return 6.0;
+    if(label.includes('高')) return 8.0;
+    return 5.0;
+  }
+  const mets = estimateMets(intensity);
+
+  const recs = picks.map(e=>{
+    const duration = per;
+    const estCal = Math.round((mets * 3.5 * w / 200) * duration);
+    const metMin = Math.round(mets * duration);
+    return { equipment:e, duration, intensity, rpe, mets, metMin, estCal, reason:
+      e==='跑步機'?'耗能高、可控坡度與速度':
+      e==='橢圓機'?'低衝擊、膝蓋友善':
+      e==='划船機'?'全身動員、提高耗能':
+      e==='立式腳踏車'?'適合間歇、膝蓋負擔較低':
+      e==='臥式腳踏車'?'非常低衝擊、復健與心肺適合':'' };
+  });
+
+  prescriptionCard.style.display = 'block';
+  rxSummary.innerHTML = `<div style="font-weight:800">${intensity} | ${rpe} | 建議總時間 ${totalTime} 分鐘 | 預估 ${recs.reduce((s,r)=>s+r.estCal,0)} Kcal</div>
+    <div class="small" style="margin-top:6px">目前每週 ${currDays} 天，預期每週 ${futureDays} 天；目標 ${answers.goal || '維持'}；分項如下：</div>`;
+
+  recommendList.innerHTML = '';
+  recs.forEach((r, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'reco-card';
+    const btnId = `addCalBtn_${idx}`;
+    div.innerHTML = `
+      <div class="reco-left">
+        <div style="font-weight:800">${r.equipment} <button class="button ghost" style="margin-left:8px;padding:6px 8px" data-equip="${r.equipment}" onclick="showEquipFromBtn(event)">?</button></div>
+        <div class="reco-meta">時間：${r.duration} 分鐘 | ${r.intensity} | ${r.rpe} | METs: ${r.mets} | MET-min: ${r.metMin} | kcal: ${r.estCal}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button id="${btnId}" class="button">加入行事曆</button>
+      </div>
+    `;
+    recommendList.appendChild(div);
+
+    document.getElementById(btnId).addEventListener('click', ()=> {
+      addSingleToCalendar(r, btnId);
+    });
+  });
+
+  // save last generated
+  const last = { recs, summary:{intensity,rpe,totalTime,mets}, answers, date: new Date().toISOString().split('T')[0], ts: Date.now() };
+  localStorage.setItem('tsox_lastGenerated', JSON.stringify(last));
+  renderCalendar(); renderWeekChart();
+}
+
+/* show equip info */
+function showEquipFromBtn(ev){ const name = ev.currentTarget.getAttribute('data-equip'); showEquipInfoByName(name); }
+
+/* ---------- calendar (single add & add-all) ---------- */
+function loadCalendar(){ return JSON.parse(localStorage.getItem('tsox_calendar') || '{}'); }
+function saveCalendarObj(obj){ localStorage.setItem('tsox_calendar', JSON.stringify(obj)); }
+function addToCalendar(entry, dateKey){
+  const cal = loadCalendar();
+  if(!cal[dateKey]) cal[dateKey] = [];
+  cal[dateKey].push(entry);
+  saveCalendarObj(cal);
+  log('已加入行事曆：' + dateKey);
+  renderCalendar(); renderWeekChart();
+}
+function addSingleToCalendar(r, btnId){
+  const dateKey = new Date().toISOString().split('T')[0];
+  const entry = {
+    title: r.equipment,
+    totalTime: r.duration,
+    mets: r.mets,
+    metMin: r.metMin,
+    estCal: r.estCal,
+    plan: [r],
+    answers,
+    date: dateKey,
+    ts: Date.now()
+  };
+  addToCalendar(entry, dateKey);
+  if(btnId){
+    const btn = document.getElementById(btnId);
+    if(btn){ btn.classList.add('added-btn'); btn.innerText = '✓ 已加入'; }
+  }
+  showToast(`${r.equipment} 已加入行事曆`);
+}
+
+/* add all recs to today */
+addAllBtn.addEventListener('click', ()=>{
+  const raw = localStorage.getItem('tsox_lastGenerated');
+  if(!raw) return alert('尚無處方可加入，請先完成問診生成處方');
+  const last = JSON.parse(raw);
+  last.recs.forEach((r, idx)=>{
+    const btnId = `addCalBtn_${idx}`;
+    addSingleToCalendar(r, btnId);
+  });
+  showToast('全部項目已加入今日行事曆');
+});
+
+/* ---------- export all generated (prettier PDF via print) ---------- */
+exportAllBtn.addEventListener('click', exportAllGenerated);
+function exportAllGenerated(){
+  const raw = localStorage.getItem('tsox_lastGenerated');
+  if(!raw) return alert('尚無處方可匯出');
+  const e = JSON.parse(raw);
+  const dateKey = e.date || new Date().toISOString().split('T')[0];
+  const totalMetMin = (e.recs||[]).reduce((s,r)=>s+(r.metMin||0),0);
+  const totalKcal = (e.recs||[]).reduce((s,r)=>s+(r.estCal||0),0);
+
+  // prettier HTML for print
+  const content = `
+    <html><head><meta charset="utf-8"><title>處方 ${dateKey}</title>
+    <style>
+      :root{--p:#1b5e20;--a:#ff8a65}
+      body{font-family: 'Noto Sans TC', Arial, Helvetica, sans-serif; padding:28px; color:#222}
+      .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+      h1{color:var(--p);margin:0;font-size:24px}
+      .meta{color:#666}
+      .card{border-radius:12px;padding:14px;background:#f8fff8;border:1px solid #e6f4ea;margin-bottom:14px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th,td{border:1px solid #e0e0e0;padding:8px;text-align:left}
+      th{background:linear-gradient(90deg, #f0f7f0, #fff);color:var(--p)}
+      .totals{font-weight:800;background:#fffbea}
+      .footer{margin-top:20px;color:#555;font-size:13px}
+      .logo{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,var(--p),#2e7d32);display:inline-block;margin-right:10px}
+    </style>
+    </head><body>
+    <div class="header">
+      <div style="display:flex;align-items:center">
+        <div class="logo"></div>
+        <div>
+          <h1>T-SOX 教練處方</h1>
+          <div class="meta">匯出日期：${new Date().toLocaleDateString()} / 受測者：${e.answers?.gender||''}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;color:var(--a)">${e.summary?.intensity||''}</div>
+        <div class="meta">RPE: ${e.summary?.rpe||''}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>問診摘要</h3>
+      <pre>${formatAnswersForExport(e.answers)}</pre>
+    </div>
+
+    <div class="card">
+      <h3>分項處方（全部）</h3>
+      <table>
+        <tr><th>#</th><th>器材</th><th>時間 (min)</th><th>METs</th><th>MET-min</th><th>kcal</th><th>注意</th></tr>
+        ${(e.recs||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${r.equipment}</td><td>${r.duration}</td><td>${r.mets}</td><td>${r.metMin}</td><td>${r.estCal}</td><td>${r.reason}</td></tr>`).join('')}
+        <tr class="totals"><td colspan="4">總計</td><td>${totalMetMin}</td><td>${totalKcal}</td><td></td></tr>
+      </table>
+    </div>
+
+    <div class="footer">提醒：本處方為運動建議，若有不適或紅旗症狀（胸痛、暈眩、嚴重呼吸困難）請立即就醫。</div>
+    </body></html>
+  `;
+  const w = window.open('','_blank');
+  w.document.write(content); w.document.close();
+  setTimeout(()=> w.print(),700);
+}
+
+/* ---------- calendar render & day events ---------- */
+function renderCalendar(){
+  const year = viewDate.getFullYear(), month = viewDate.getMonth();
+  calHeader.innerText = `${year} / ${month+1}`;
+  calGrid.innerHTML = '';
+  const first = new Date(year, month, 1);
+  const start = first.getDay();
+  const dim = new Date(year, month+1, 0).getDate();
+  const cal = loadCalendar();
+  for(let i=0;i<start;i++){ const blank = document.createElement('div'); blank.className='cal-cell'; calGrid.appendChild(blank); }
+  for(let d=1; d<=dim; d++){
+    const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const events = cal[dateKey] || [];
+    const cell = document.createElement('div'); cell.className = 'cal-cell' + (events.length>0 ? ' has' : '');
+    const totalMetMin = events.reduce((s,e)=>s + (e.metMin || 0),0);
+    const totalKcal = events.reduce((s,e)=>s + (e.estCal || 0),0);
+    cell.innerHTML = `<div class="dateNum">${d}</div>` + (events.length>0 ? `<div class="small">${events.length} 筆</div><div class="small">MET-min:${Math.round(totalMetMin)}</div><div class="small">Kcal:${Math.round(totalKcal)}</div>` : '');
+    if(events.length>0) cell.classList.add('has');
+    const dot = document.createElement('div'); dot.className='cal-dot'; cell.appendChild(dot);
+    cell.addEventListener('click', ()=> showDayEvents(dateKey));
+    calGrid.appendChild(cell);
+  }
+}
+function showDayEvents(dateKey){
+  const cal = loadCalendar();
+  const events = cal[dateKey] || [];
+  let html = `<div style="font-weight:800;margin-bottom:8px">${dateKey}</div>`;
+  if(events.length===0) html += '<div class="small">當日無紀錄</div>';
+  else {
+    events.forEach((e, idx)=>{
+      html += `<div style="border-bottom:1px dashed #eee;padding-bottom:8px;margin-bottom:8px">
+        <div style="font-weight:800">${e.title || e.plan?.[0]?.equipment || '處方'}</div>
+        <div class="small">時間：${e.totalTime || e.plan?.[0]?.duration || ''} 分鐘 | METs：${e.mets || e.plan?.[0]?.mets || ''} | MET-min：${Math.round(e.metMin|| (e.mets* (e.totalTime|| e.plan?.[0]?.duration || 0)))} | kcal：${Math.round(e.estCal|| e.plan?.[0]?.estCal || 0)}</div>
+        <div style="margin-top:6px">${(e.plan||[]).map(p=>`<div>${p.equipment}：${p.duration} 分鐘</div>`).join('')}</div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="button ghost" onclick='exportSingle("${dateKey}", ${idx})'>匯出 PDF</button>
+          <button class="button" style="background:#d32f2f" onclick='deleteSingle("${dateKey}", ${idx})'>刪除</button>
+        </div>
+      </div>`;
+    });
+  }
+  dayEvents.innerHTML = html;
+}
+
+/* export & delete for calendar items */
+function exportSingle(dateKey, idx){
+  const cal = loadCalendar();
+  const e = cal[dateKey][idx];
+  const content = `
+    <html><head><meta charset="utf-8"><title>處方 ${dateKey}</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px}h2{color:#2e7d32}li{margin-bottom:6px}</style>
+    </head><body>
+    <h2>T-SOX 教練處方</h2>
+    <div>日期：${dateKey}</div>
+    <div>摘要：${e.title || ''} | 時間 ${e.totalTime || ''} 分鐘 | METs ${e.mets || ''} | MET-min ${e.metMin || ''} | 預估 ${e.estCal || ''} kcal</div>
+    <h3>細項</h3><ul>${(e.plan||[]).map(p=>`<li><strong>${p.equipment}</strong>：${p.duration} 分鐘</li>`).join('')}</ul>
+    <h3>問診摘要</h3><pre>${formatAnswersForExport(e.answers)}</pre>
+    </body></html>`;
+  const w = window.open('','_blank'); w.document.write(content); w.document.close(); setTimeout(()=> w.print(),600);
+}
+function deleteSingle(dateKey, idx){
+  if(!confirm('確定刪除此筆紀錄？')) return;
+  const cal = loadCalendar();
+  cal[dateKey].splice(idx,1);
+  saveCalendarObj(cal);
+  renderCalendar(); showDayEvents(dateKey); renderWeekChart();
+}
+
+/* ---------- weekly MET-min chart ---------- */
+function getWeekNumber(d){
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+function aggregateWeeklyMetMin(){
+  const cal = loadCalendar();
+  const weekly = {};
+  for(const dateKey in cal){
+    const items = cal[dateKey];
+    items.forEach(it=>{
+      const d = new Date(dateKey);
+      const y = d.getFullYear();
+      const w = getWeekNumber(d);
+      const ky = `${y}-W${String(w).padStart(2,'0')}`;
+      const val = Number(it.metMin || 0);
+      weekly[ky] = (weekly[ky] || 0) + val;
+    });
+  }
+  const keys = Object.keys(weekly).sort();
+  return {keys, values: keys.map(k=>weekly[k])};
+}
+function renderWeekChart(){
+  const agg = aggregateWeeklyMetMin();
+  if(!weekChart){
+    weekChart = new Chart(weekCtx, {
+      type:'line',
+      data:{ labels: agg.keys, datasets:[{ label:'每週 MET-min', data: agg.values, fill:true, tension:0.2, borderColor:'#2e7d32', backgroundColor:'rgba(46,125,50,0.12)' }] },
+      options:{ responsive:true, scales:{ y:{ beginAtZero:true } }, plugins:{ legend:{display:false} } }
+    });
+  } else {
+    weekChart.data.labels = agg.keys; weekChart.data.datasets[0].data = agg.values; weekChart.update();
+  }
+}
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function showToast(txt, ms=2000){
+  toastEl.innerText = txt;
+  toastEl.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ toastEl.classList.remove('show'); }, ms);
+}
+
+/* ---------- UI events & nav ---------- */
+document.getElementById('btnClear').addEventListener('click', ()=>{ if(confirm('清除問診資料？')){ answers={}; currentIndex=0; prettyAnswers(); updateProgress(); document.getElementById('prescriptionCard').style.display='none'; consoleEl.style.display='block'; hintEl.style.display='block'; localStorage.removeItem('tsox_lastGenerated'); } });
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); });
+document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); });
+
+tabSurveyBtn.addEventListener('click', ()=> navTo('survey'));
+tabCalendarBtn.addEventListener('click', ()=> navTo('calendar'));
+tabMetBtn.addEventListener('click', ()=> navTo('met'));
+
+function navTo(p){
+  document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.tab-page').forEach(tp=>tp.classList.remove('active'));
+  if(p==='survey'){ tabSurveyBtn.classList.add('active'); pageSurvey.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }
+  if(p==='calendar'){ tabCalendarBtn.classList.add('active'); pageCalendar.classList.add('active'); window.scrollTo({top:200,behavior:'smooth'}); }
+  if(p==='met'){ tabMetBtn.classList.add('active'); pageMet.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); renderWeekChart(); }
+}
+
+/* ---------- main mic button ---------- */
+micBtn.addEventListener('click', async ()=>{
+  if(!recognition){
+    const ok = initRecognition(currentLang || 'cmn-Hant-TW');
+    if(!ok) return;
+  }
+  if(!autoRecording){
+    autoRecording = true;
+    log('使用者啟動問診並開啟麥克風（continuous）');
+    currentIndex = 0; answers = {}; prettyAnswers(); updateProgress();
+    try{ recognition.start(); } catch(e){ log('recognition.start() 失敗: ' + (e.message||e), true); }
+    // speak first question (gentle)
+    speak('好的，我們開始問診囉。請先回答下一題：' + steps[0].prompt);
+  } else {
+    if(isListening){ try{ recognition.stop(); }catch(e){}; log('手動停止錄音'); showToast('已暫停錄音'); }
+    else { try{ recognition.start(); }catch(e){ log('start fail: ' + (e.message||e), true); } log('手動啟動錄音'); showToast('繼續錄音'); }
+  }
+});
+
+/* ---------- export all calendar ---------- */
+document.getElementById('btnExportCalendar')?.addEventListener('click', ()=> exportAllCalendar());
+function exportAllCalendar(){
+  const cal = loadCalendar();
+  const all = [];
+  for(const d in cal) all.push(...cal[d]);
+  if(!all.length) { alert('行事曆無紀錄'); return; }
+  const content = `
+    <html><head><meta charset="utf-8"><title>全部處方匯出</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px}h2{color:#2e7d32}li{margin-bottom:6px}</style>
+    </head><body><h2>全部行事曆匯出</h2>
+    ${all.map(e=>`<div style="margin-bottom:12px"><div>${e.date||''} - ${e.title||''} | ${e.totalTime||''} 分鐘 | ${e.estCal||''} kcal</div></div>`).join('')}
+    </body></html>`;
+  const w = window.open('','_blank'); w.document.write(content); w.document.close(); setTimeout(()=> w.print(),600);
+}
+
+/* ---------- format answers for export ---------- */
+function formatAnswersForExport(ans){
+  if(!ans) return '';
+  let s = '';
+  s += `性別：${ans.gender||''}\n`;
+  s += `年齡：${ans.age||''}\n`;
+  s += `身高：${ans.height||''}\n`;
+  s += `體重：${ans.weight||''}\n`;
+  s += `運動目標：${ans.goal||''}\n`;
+  s += `目前每週運動：${ans.current_days||''}\n`;
+  s += `未來每週目標：${ans.future_days||''}\n`;
+  s += `經驗：${ans.experience||''}\n`;
+  s += `慢性病：${ans.chronic||''} ${ans.chronic_type||''}\n`;
+  s += `氣喘：${ans.asthma||''}\n`;
+  s += `膝蓋：${ans.knee||''}\n`;
+  s += `目標週數：${ans.goal_weeks||''}\n`;
+  return s;
+}
+
+/* ---------- clear calendar ---------- */
+document.getElementById('btnClearCalendar')?.addEventListener('click', ()=>{
+  if(!confirm('確定清空整個行事曆？')) return;
+  localStorage.removeItem('tsox_calendar');
+  renderCalendar(); renderWeekChart();
+});
+
+/* ---------- calendar storage helpers ---------- */
+function loadCalendar(){ return JSON.parse(localStorage.getItem('tsox_calendar') || '{}'); }
+function saveCalendarObj(obj){ localStorage.setItem('tsox_calendar', JSON.stringify(obj)); }
+
+/* ---------- init ---------- */
+updateProgress(); renderCalendar(); renderWeekChart(); log('系統就緒。請按麥克風開始（第一次會詢問權限）');
+
+</script>
+</body>
+</html>
+
