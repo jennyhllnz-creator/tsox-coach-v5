@@ -298,25 +298,46 @@ function initRecognition(lang){
   }
 }
 
-/* ---------- TTS ---------- */
+/* ---------- TTS (修正版，確保穩定重啟麥克風) ---------- */
 function speak(text, onend){
-  waitingForTTS = true;
-  suppressRecognition = true;
-  const u = new SpeechSynthesisUtterance(text);
-  const voices = speechSynthesis.getVoices();
-  let chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh-tw')) || voices[0];
-  if(chosen) u.voice = chosen;
-  u.lang = chosen?.lang || 'zh-TW';
-  u.rate = 0.98;
-  u.pitch = 1.0;
-  u.onend = ()=>{
-    waitingForTTS = false;
-    suppressRecognition = false;
-    log('TTS 結束: ' + text);
-    if(typeof onend === 'function') onend();
-  };
-  synth.cancel(); synth.speak(u);
+  waitingForTTS = true;
+  suppressRecognition = true;
+  
+  // Explicitly stop recognition before TTS starts to prevent conflict
+  try{ recognition && recognition.stop(); } catch(e){}
+
+  const u = new SpeechSynthesisUtterance(text);
+  const voices = speechSynthesis.getVoices();
+  let chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh-tw')) || voices[0];
+  u.voice = chosen;
+  u.lang = chosen?.lang || 'zh-TW';
+  u.rate = 1.05;
+  
+  u.onend = ()=>{
+    waitingForTTS = false;
+    suppressRecognition = false;
+    log('TTS 結束: ' + text);
+    
+    if(typeof onend === 'function') onend();
+    
+    // 關鍵修正：確保 TTS 結束後能成功接力啟動麥克風
+    if(autoRecording && currentIndex < steps.length){
+      // 延遲 400ms 讓音頻通道完全釋放
+      setTimeout(()=>{ 
+        try{ 
+          recognition.start(); 
+          log('麥克風成功重啟');
+        } catch(e){ 
+          log('麥克風重啟失敗，嘗試再次呼叫: ' + (e.message||e), true); 
+          // If the first restart fails, try again after a brief moment (failsafe)
+          setTimeout(() => { try{ recognition.start(); } catch(e) {} }, 500); 
+        } 
+      }, 400);
+    }
+  };
+  synth.cancel(); synth.speak(u);
 }
+// (請保留其他所有程式碼不變)
 
 /* ---------- parsing helpers ---------- */
 function parseChineseNumber(text){
